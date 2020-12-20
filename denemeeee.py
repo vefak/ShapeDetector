@@ -10,15 +10,38 @@ import cv2
 import random
 import math
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 
+
+
+def _perpendicular_distance(p, p1, p2):
+    dx = p2[0] - p1[0]
+    dy = p2[1] - p1[1]
+    d = math.sqrt(dx * dx + dy * dy)
+    return abs((p[0] * dy) - (p[1] * dx) + (p2[0] * p1[1]) - (p2[1] * p1[0]))/d
 
 
 def perpendicular_distance(p, p1, p2):
     dx = p2[0] - p1[0]
     dy = p2[1] - p1[1]
-    d = math.sqrt(dx * dx + dy * dy)
-    return abs((p[0] * dy) - (p[1] * dx) + (p2[0] * p1[1]) - (p2[1] * p1[0]))/d
+    mag = math.sqrt(dx * dx + dy * dy)
+    if (mag > 0.0):
+        dx /= mag
+        dy /= mag
+    pvx = p[0]-p1[0]
+    pvy = p[1]-p1[1]
+    
+    pvdot = dx*pvx + dy* pvy
+    
+    dsx = pvdot * dx
+    dsy = pvdot * dy
+    
+    ax = pvx - dsx
+    ay = pvy - dsy
+    res = math.sqrt(ax*ax + ay*ay)
+    return res
+    
+    
+    
 
 def RDP(line,epsilon):
     startIdx = 0
@@ -40,7 +63,6 @@ def RDP(line,epsilon):
         results = np.vstack((line[0], line[endIdx]))
         return results
 
-img = cv2.imread("fuzzy.png",1)
 img  = cv2.imread("./shapes.bmp")
 plt.imshow(img)
 
@@ -48,11 +70,11 @@ gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 
 blur = cv2.GaussianBlur(gray, (3,3),0)
 
-_, thresh = cv2.threshold(blur, 150, 255, cv2.THRESH_BINARY)
+_, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
 
 plt.imshow(thresh)
 
-_, contours, _ = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+_, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 print(len(contours))
 
@@ -74,7 +96,7 @@ for c in filtered:
     points.append(res)
     color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
     for i in range(len(res)-1):
-        cv2.line(img, (res[i][0],res[i][1]), (res[i+1][0],res[i+1][1]), color, 5)
+        cv2.line(img, (res[i][0],res[i][1]), (res[i+1][0],res[i+1][1]), color, 10)
 
 
 
