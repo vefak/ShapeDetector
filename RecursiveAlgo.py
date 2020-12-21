@@ -116,20 +116,3 @@ def recursive_connected(B,LB):
 filt = np.zeros((rows,cols), dtype = 'uint8')     
 etet=recursive_connected(gray,resim)
 
-for i in range(rows):
-        for j in range(cols):
-            if etet[i][j] == 4:
-                filt[i][j] = 1
-            else:
-                filt[i][j] = 0
-
-plt.imshow(etet)
-plt.imshow(filt)
-
-_,im = cv2.threshold(filt, 128, 255, cv2.THRESH_BINARY)
-
-moments = cv2.moments(filt)
-huMoments = cv2.HuMoments(moments)
-# Log scale hu moments
-for i in range(0,7):
-  huMoments[i] = -1* math.copysign(1.0, huMoments[i]) * math.log10(abs(huMoments[i]))
