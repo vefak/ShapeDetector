@@ -7,7 +7,6 @@ Created on Sun Dec 20 23:35:05 2020
 
 import numpy as np
 import cv2
-import random
 import math
 import matplotlib.pyplot as plt
 
@@ -58,8 +57,8 @@ def perpendicular_distance(p, p1, p2):
     return res
     
 def shapeDetermine(angs,contour):    
-    uerr = 1.1
-    derr = 0.90
+    uerr = 1.05
+    derr = 0.95
     
     if  any(x > 60*derr and x < 60*uerr for x in angs):
         cv2.drawContours(img, [contour], 0, (255, 255, 0), -1)
@@ -102,15 +101,15 @@ img2 = cv2.imread("./shapes.bmp")
 gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 blur = cv2.GaussianBlur(gray, (7,17),0)
 _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
-kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(7,7),(3,3))
-dilation = cv2.dilate(thresh,kernel,iterations = 1)
-erosion = cv2.erode(dilation,kernel,iterations = 1)
-_, contours, _ = cv2.findContours(erosion, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+_, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
 filtered = []
 for c in contours:
 	if cv2.contourArea(c) <50:continue
 	filtered.append(c)
+
+
+
 
 
 numberedges = []
@@ -127,6 +126,7 @@ for j, cnt in enumerate(filtered):
     shapeDetermine(angles,cnt)
     j +=1  
 plt.imshow(img)
+
 
 
 
