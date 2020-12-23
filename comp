@@ -1,0 +1,73 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Mar 14 20:48:55 2019
+
+@author: vmakm
+"""
+
+import numpy as np
+from matplotlib import pyplot as plt
+from skimage import io
+
+image = io.imread("washedPolen.tif")
+#image = io.imread("building.tif")
+
+#Gerekli değişkenler tanımlandı
+rows, cols = image.shape
+t=0
+y=0
+currentValue =0
+histListe = []
+histListe_2 = []
+histAra = np.zeros((cols*rows), dtype = 'uint8')
+histAra_1 = np.zeros((cols*rows), dtype = 'uint8')
+histDegerler = np.zeros((256,), dtype = 'uint8')
+histDegerler_2 = np.zeros((256,), dtype = 'uint8')
+histEsit = np.zeros((256,), dtype = 'float')
+cumulative = np.zeros((256,), dtype = 'float')
+bins=np.linspace(0,255,256,dtype='uint8')
+
+
+#Piksel değerleri tek boyutlu diziye atandı
+for i in range(rows):
+    for j in range(cols):
+        histAra[t]=image[i,j]
+        t += 1
+#Her piksel değerinden kaç adet olduğu sayıldı. Histgoram hesabı    
+for k in range(len(bins)):
+    mask = (histAra==bins[k])
+    histListe.append(len(histAra[mask]))
+    
+#Float türüne çevrildi ve normalize edildi  
+histDegerler = np.array(histListe, np.float)
+histDegerler = histDegerler/image.size
+
+#Kümülatif toplam
+for k in range(len(histEsit)):
+    currentValue = currentValue + histDegerler[k,]
+    cumulative[k,] = currentValue
+
+#Değerler yuvarlandı ve gri seviye değeri ile çarpıldı
+cumulative = np.round(cumulative*255)
+cumulative = np.array(cumulative, np.uint8)
+
+#Histogram görüntüye uygulandı
+img2 = cumulative[image]
+
+#Histogram uygulanmış görüntünün histogramı çıkarıldı
+for i in range(rows):
+    for j in range(cols):
+        histAra_1[y]=img2[i,j]
+        y += 1
+        
+for k in range(len(bins)):
+    mask = (histAra_1==bins[k])
+    histListe_2.append(len(histAra[mask]))
+histDegerler_2 = np.array(histListe_2, np.float)
+  
+
+plt.subplot(2,1,1)
+plt.imshow(img2, cmap='gray')
+plt.subplot(2,1,2)
+plt.plot(histDegerler_2)
+
