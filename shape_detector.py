@@ -11,156 +11,184 @@ import math
 import matplotlib.pyplot as plt
 
 class ShapeDetector:
+    """
+    This class works as a shape classifier, based on the angles between lines
+    which are extracted from contours.
+    """
 
-    def __init__(self):
+    def __init__(self, image, upperlimit, lowerlimit):
         
-        #DrawContours
-        self.upperlimit = 1.05
-        self.downlimit = 0.95
+        self.image = image           # Input image
+        self.upperlimit = upperlimit # Upper limit of shape angle
+        self.lowerlimit = lowerlimit # Lower limit of shape angle
+        self.min_pixel_area = 50     # Shapes with a minimum area of 50 pixels can be ignored if exist.
+        self.perimeter_ratio = 0.01  # Perimeter ratio 
+        self.shapes_dict = {         # Dictionary holds shape variables
+            "triangle": {"angle":60, "color":(255,255,0) },
+            "rectangle": {"angle":90, "color":(0,0,200) },
+            "pentagon": {"angle":108, "color":(255,105,180) },
+            "hexagon": {"angle":120, "color":(255,69,0) },
+            "circle": {"angle":360, "color":(0,255,0) }}
+        
+    def show_image(self):
+        plt.imshow(self.image)
+        
+    def save_image(self,path):
+        plt.imsave(path,self.image)
+        
+    def __dot(self, v_a, v_b):
+        """
+        Calculates dot product of two vector
+        """
+        return v_a[0]*v_b[0]+v_a[1]*v_b[1]
+    
+    def __find_angle(self, lineA, lineB):
+        """
+        Calculates angle between two lines by formula:
+        cos(θ)=(a⋅b)/(|a||b|)
 
-        
-    def __check_contours_size(self,cnts):
+        """
+        # Vector form
+        v_a = [(lineA[0][0]-lineA[1][0]), (lineA[0][1]-lineA[1][1])]
+        v_b = [(lineB[0][0]-lineB[1][0]), (lineB[0][1]-lineB[1][1])]
+        # Dot product of vectors
+        dot_prod = self.__dot(v_a, v_b)
+        # Get magnitudes
+        mag_a = self.__dot(v_a, v_a)**0.5
+        mag_b = self.__dot(v_b, v_b)**0.5
+        # Get angle in radians 
+        angle = math.acos(dot_prod/mag_b/mag_a)
+        # Convert radian to angle
+        angle_degree = math.degrees(angle)%360
+        if angle_degree-180>=0:
+            return 360 - angle_degree
+        else: 
+            return angle_degree
+     
+          
+    def __check_contours_size(self, contours):
+        """
+        Check shape size bigger than 50 pixel
+        """
         filtered = []
-        for c in cnts:
-            if not cv2.contourArea(c) <50:
+        for c in contours:
+            if not cv2.contourArea(c) < self.min_pixel_area:
                 filtered.append(c)
         return filtered
-    
-   
-    def __dot(self, vA, vB):
-        return vA[0]*vB[0]+vA[1]*vB[1]
-    
-    def ang(self, lineA, lineB):
-        # Get nicer vector form
-        vA = [(lineA[0][0]-lineA[1][0]), (lineA[0][1]-lineA[1][1])]
-        vB = [(lineB[0][0]-lineB[1][0]), (lineB[0][1]-lineB[1][1])]
-        # Get dot prod
-        dot_prod = self.__dot(vA, vB)
-        # Get magnitudes
-        magA = self.__dot(vA, vA)**0.5
-        magB = self.__dot(vB, vB)**0.5
-        # Get angle in radians and then convert to degrees
-        angle = math.acos(dot_prod/magB/magA)
-        # Basically doing angle <- angle mod 360
-        ang_deg = math.degrees(angle)%360
-    
-        if ang_deg-180>=0:
-            # As in if statement
-            return 360 - ang_deg
-        else: 
-    
-            return ang_deg
-    
-    
-    def __perpendicular_distance(self,p, p1, p2):
-        dx = p2[0] - p1[0]
-        dy = p2[1] - p1[1]
-        mag = math.sqrt(dx * dx + dy * dy)
-        if (mag > 0.0):
-            dx /= mag
-            dy /= mag
-        pvx = p[0]-p1[0]
-        pvy = p[1]-p1[1]
-        
-        pvdot = dx*pvx + dy* pvy
-        
-        dsx = pvdot * dx
-        dsy = pvdot * dy
-        
-        ax = pvx - dsx
-        ay = pvy - dsy
-        dist = math.sqrt(ax*ax + ay*ay)
-        return dist
-    
-    
-    def get_contours(self,image):
-        
+      
+    def __get_contours(self,preprocessed_image):
+        """
+        Get contours of shapes in given image
+        """
         new_contours = []
-        plt.imshow(image)
-        _, contours, _ = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        _, contours, _ = cv2.findContours(preprocessed_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
         new_contours = self.__check_contours_size(contours)
-    
         return new_contours
     
-    def RDP(self,line,epsilon):
-        startIdx = 0
-        endIdx = len(line)-1
-        maxDist = 0
-        maxId = 0
+    def __perpendicular_distance(self, point, point1, point2):
+        """
+        Calculate perpendicular distance between lines
+        
+        """    
+        dx = point2[0] - point1[0] # (x2-x1) 
+        dy = point2[1] - point1[1] # (y2-y1) 
+        mag = math.sqrt(dx * dx + dy * dy) # Magnitude 
+        px = point1[0]-point[0] # (x1-x0)
+        py = point1[1]-point[1] # (y1-y0)   
+        dp = abs(dx*py - dy*px) # |(x2-x1)(y1-y0) - (y2-y1)(x1-x0)|
+        dist = dp/mag 
+        return dist
     
-        for i in range(1,endIdx):
-            d = self.__perpendicular_distance(line[i],line[startIdx],line[endIdx])
-            if d > maxDist:
-                maxDist = d
-                maxId = i
-        if maxDist > epsilon:
-            l = self.RDP(line[startIdx:maxId+1],epsilon)
-            r = self.RDP(line[maxId:],epsilon)
+    def __RDP(self,line,epsilon):
+        """
+        Using Ramiend Daquet Algorithm to reduce number of contours
+        """
+        start_idx = 0
+        end_idx = len(line)-1
+        max_dist = 0
+        max_id = 0
+        
+        for i in range(1,end_idx):
+            d = self.__perpendicular_distance(line[i],line[start_idx],line[end_idx])
+            if d > max_dist:
+                max_dist = d
+                max_id = i
+        if  max_dist < epsilon:
+            results = np.vstack((line[0], line[end_idx]))
+            return results
+        else:
+            l = self.__RDP(line[start_idx:max_id+1],epsilon)
+            r = self.__RDP(line[max_id:],epsilon)
             results = np.vstack((l[:-1], r))
             return results
-        else:
-            results = np.vstack((line[0], line[endIdx]))
-            return results
     
     
-    def draw_shapes(self,image,angs,contour):    
+    def __coloring_shapes(self,angle,contour):    
+        """
+        Coloring shapes
+        """
         uerr = self.upperlimit
-        derr = self.downlimit
-        
-        if  any(x > 60*derr and x < 60*uerr for x in angs):
-            cv2.drawContours(image, [contour], 0, (255, 255, 0), -1)
-            
-        elif  any(x > 90*derr and x < 90*uerr for x in angs):
-            cv2.drawContours(image, [contour], 0, (0, 0, 200), -1)
-        
-        elif  any(x > 108*derr and x < 108*uerr for x in angs):
-            cv2.drawContours(image, [contour], 0, (255,105,180), -1)
-            
-        elif  any(x > 120*derr and x < 120*uerr for x in angs):
-            cv2.drawContours(image, [contour], 0,(255,69,0), -1)
+        derr = self.lowerlimit
+        #Rectangle
+        if  angle > self.shapes_dict["rectangle"]["angle"]*derr and angle < self.shapes_dict["rectangle"]["angle"]*uerr:
+            cv2.drawContours(self.image, [contour], 0, self.shapes_dict["rectangle"]["color"], -1)
+        #Triangle
+        elif angle > self.shapes_dict["triangle"]["angle"]*derr and angle < self.shapes_dict["triangle"]["angle"]*uerr:
+            cv2.drawContours(self.image, [contour], 0, self.shapes_dict["triangle"]["color"], -1)
+        #Pentagon
+        elif  angle > self.shapes_dict["pentagon"]["angle"]*derr and angle < self.shapes_dict["pentagon"]["angle"]*uerr:
+            cv2.drawContours(self.image, [contour], 0, self.shapes_dict["pentagon"]["color"], -1)
+        #Hexagon
+        elif  angle > self.shapes_dict["hexagon"]["angle"]*derr and angle < self.shapes_dict["hexagon"]["angle"]*uerr:
+            cv2.drawContours(self.image, [contour], 0, self.shapes_dict["hexagon"]["color"], -1)
+        #Circle
         else:
-            cv2.drawContours(image, [contour], 0,(0,200,0), -1)
-        return image
+            cv2.drawContours(self.image, [contour], 0,self.shapes_dict["circle"]["color"], -1)
+        
     
     
-    def __convertGrayScale(self,image):
-        Y = 0.2126*image[:,:,0] + 0.7152*image[:,:,1] + 0.0722*image[:,:,2]
-        return Y
+    def __convert_gray_scale(self):
+        """
+        Convert RGB images to Gray images
+        """
+        gray_image = 0.2126*self.image[:,:,0] + 0.7152*self.image[:,:,1] + 0.0722*self.image[:,:,2]
+        return gray_image
 
         
-    def __thresholding(self,image):
-        
-        for k in range(len(image)):
-            for l in range(len(image[0])):
-                if(image[k,l]>100):
-                    image[k,l]=255
-        			 
+    def __thresholding(self, gray_image):
+        for k in range(len(gray_image)):
+            for l in range(len(gray_image[0])):
+                if(gray_image[k,l]>100):
+                    gray_image[k,l]=255 
                 else:
-                    image[k,l]=0
-
-        return np.uint8(image)
+                    gray_image[k,l]=0         
+        return np.uint8(gray_image)
 
     
-    def preprocess(self,image):
-       
-        gray = self.__convertGrayScale(image)
-        thresh = self.__thresholding(gray)
+    def preprocess(self):
+        """
+        Preprocessing given images:
+            Convert gray scale
+            Thresholding
+        """
+        gray_image = self.__convert_gray_scale()
+        thresholded_image = self.__thresholding(gray_image)
 
-        return thresh
+        return thresholded_image
     
-    def detect_shapes(self,image):
-        
-        preprocessed_img = self.preprocess(image)
-        filtered_contours = self.get_contours(preprocessed_img)
-
-        for cnt in filtered_contours:
+    def detect_shape(self):
+        """
+        Main function that handles all process
+        """
+        preprocessed_image = self.preprocess()
+        contours = self.__get_contours(preprocessed_image)
+        for cnt in contours:
             angles = []
             p = cv2.arcLength(cnt,True)
-            res = self.RDP(cnt[:,0,:],p*0.01)    
+            res = self.__RDP(cnt[:,0,:], p*self.perimeter_ratio)    
             for i in range(len(res)-2):
                 line1 = (res[i], res[i+1])
                 line2 = (res[i+2], res[i+1])
-                angles.append(self.ang(line1,line2))
-            image = self.draw_shapes(image,angles,cnt)
-        return image
+                angles.append(self.__find_angle(line1,line2))
+                self.__coloring_shapes(min(angles),cnt)
         
