@@ -4,7 +4,6 @@
 Created on Wed Dec 23 17:15:19 2020
 @author: vefak
 
-The main file and the main algorithm.
 It takes the image from local path and go through shape detection phase:
 1. Do image preprocessing
 2. Find Contours

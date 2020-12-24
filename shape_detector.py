@@ -24,11 +24,11 @@ class ShapeDetector:
         self.min_pixel_area = 50     # Shapes with a minimum area of 50 pixels can be ignored if exist.
         self.perimeter_ratio = 0.01  # Perimeter ratio 
         self.shapes_dict = {         # Dictionary holds shape variables
-            "triangle": {"angle":60, "color":(255,255,0) },
-            "rectangle": {"angle":90, "color":(0,0,200) },
-            "pentagon": {"angle":108, "color":(255,105,180) },
-            "hexagon": {"angle":120, "color":(255,69,0) },
-            "circle": {"angle":360, "color":(0,255,0) }}
+            "triangle":  {"angle":60,  "color":(255,255,0)   },
+            "rectangle": {"angle":90,  "color":(0,0,200)     },
+            "pentagon":  {"angle":108, "color":(255,105,180) },
+            "hexagon":   {"angle":120, "color":(255,69,0)    },
+            "circle":    {"angle":360, "color":(0,255,0)     }}
         
     def show_image(self):
         plt.imshow(self.image)
